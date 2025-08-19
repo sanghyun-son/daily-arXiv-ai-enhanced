@@ -1,0 +1,207 @@
+import os
+import json
+import sys
+import time
+from typing import List, Dict, Optional
+import argparse
+import dotenv
+from openai import OpenAI
+
+if os.path.exists('.env'):
+    dotenv.load_dotenv()
+
+def parse_args():
+    """Parse command line arguments"""
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--data", type=str, required=True, help="original jsonline data file")
+    parser.add_argument("--wait", action="store_true", help="Wait for batch completion if not ready")
+    parser.add_argument("--max_wait", type=int, default=3600, help="Maximum wait time in seconds (default: 1 hour)")
+    return parser.parse_args()
+
+def check_batch_status(batch_job_id: str) -> Dict:
+    """Check the status of a batch job"""
+    client = OpenAI()
+    batch_job = client.batches.retrieve(batch_job_id)
+    
+    return {
+        "id": batch_job.id,
+        "status": batch_job.status,
+        "created_at": batch_job.created_at,
+        "completed_at": batch_job.completed_at,
+        "failed_at": batch_job.failed_at,
+        "expired_at": batch_job.expired_at,
+        "request_counts": batch_job.request_counts,
+        "output_file_id": batch_job.output_file_id,
+        "error_file_id": batch_job.error_file_id
+    }
+
+def download_batch_results(output_file_id: str, output_path: str) -> bool:
+    """Download batch results from OpenAI"""
+    try:
+        client = OpenAI()
+        file_response = client.files.content(output_file_id)
+        
+        with open(output_path, 'wb') as f:
+            f.write(file_response.content)
+        
+        print(f'Downloaded batch results to: {output_path}', file=sys.stderr)
+        return True
+    except Exception as e:
+        print(f'Error downloading batch results: {e}', file=sys.stderr)
+        return False
+
+def parse_batch_results(results_file: str) -> Dict[str, Dict]:
+    """Parse batch results and return a mapping of custom_id to result"""
+    results = {}
+    
+    with open(results_file, 'r') as f:
+        for line in f:
+            result = json.loads(line)
+            custom_id = result['custom_id']
+            
+            # Extract the function call result
+            if result['response']['body']['choices'][0]['message'].get('function_call'):
+                function_call = result['response']['body']['choices'][0]['message']['function_call']
+                if function_call['name'] == 'Structure':
+                    try:
+                        ai_result = json.loads(function_call['arguments'])
+                        results[custom_id] = ai_result
+                    except json.JSONDecodeError as e:
+                        print(f'Error parsing function call arguments for {custom_id}: {e}', file=sys.stderr)
+                        results[custom_id] = {
+                            "tldr": "Error parsing result",
+                            "motivation": "Error parsing result",
+                            "method": "Error parsing result",
+                            "result": "Error parsing result",
+                            "conclusion": "Error parsing result"
+                        }
+            else:
+                print(f'No function call found for {custom_id}', file=sys.stderr)
+                results[custom_id] = {
+                    "tldr": "No AI result",
+                    "motivation": "No AI result",
+                    "method": "No AI result",
+                    "result": "No AI result",
+                    "conclusion": "No AI result"
+                }
+    
+    return results
+
+def process_batch_results(data_file: str, wait_for_completion: bool = False, max_wait: int = 3600) -> bool:
+    """Process batch results and create the enhanced data file"""
+    # Load batch info
+    batch_info_file = data_file.replace('.jsonl', '_batch_info.json')
+    if not os.path.exists(batch_info_file):
+        print(f'Batch info file not found: {batch_info_file}', file=sys.stderr)
+        return False
+    
+    with open(batch_info_file, 'r') as f:
+        batch_info = json.load(f)
+    
+    batch_job_id = batch_info['batch_job_id']
+    language = batch_info.get('language', 'Chinese')
+    
+    print(f'Checking batch job: {batch_job_id}', file=sys.stderr)
+    
+    # Check batch status
+    wait_time = 0
+    while True:
+        status_info = check_batch_status(batch_job_id)
+        print(f'Batch status: {status_info["status"]}', file=sys.stderr)
+        
+        if status_info['status'] == 'completed':
+            break
+        elif status_info['status'] in ['failed', 'expired', 'cancelled']:
+            print(f'Batch job failed with status: {status_info["status"]}', file=sys.stderr)
+            return False
+        elif status_info['status'] in ['validating', 'in_progress', 'finalizing']:
+            if wait_for_completion and wait_time < max_wait:
+                print(f'Batch job still processing, waiting... ({wait_time}s elapsed)', file=sys.stderr)
+                time.sleep(60)  # Wait 1 minute
+                wait_time += 60
+            else:
+                if wait_for_completion:
+                    print(f'Maximum wait time ({max_wait}s) exceeded', file=sys.stderr)
+                else:
+                    print('Batch job not ready yet. Use --wait flag to wait for completion.', file=sys.stderr)
+                return False
+        else:
+            print(f'Unknown batch status: {status_info["status"]}', file=sys.stderr)
+            return False
+    
+    # Download results
+    if not status_info['output_file_id']:
+        print('No output file ID found in completed batch job', file=sys.stderr)
+        return False
+    
+    results_file = data_file.replace('.jsonl', '_batch_results.jsonl')
+    if not download_batch_results(status_info['output_file_id'], results_file):
+        return False
+    
+    # Parse results
+    ai_results = parse_batch_results(results_file)
+    print(f'Parsed {len(ai_results)} AI results', file=sys.stderr)
+    
+    # Load original data
+    data = []
+    with open(data_file, 'r') as f:
+        for line in f:
+            data.append(json.loads(line))
+    
+    # Merge AI results with original data
+    enhanced_data = []
+    for item in data:
+        if item['id'] in ai_results:
+            item['AI'] = ai_results[item['id']]
+        else:
+            print(f'No AI result found for {item["id"]}', file=sys.stderr)
+            item['AI'] = {
+                "tldr": "No AI result",
+                "motivation": "No AI result", 
+                "method": "No AI result",
+                "result": "No AI result",
+                "conclusion": "No AI result"
+            }
+        enhanced_data.append(item)
+    
+    # Save enhanced data
+    target_file = data_file.replace('.jsonl', f'_AI_enhanced_{language}.jsonl')
+    if os.path.exists(target_file):
+        os.remove(target_file)
+        print(f'Removed existing file: {target_file}', file=sys.stderr)
+    
+    with open(target_file, 'w') as f:
+        for item in enhanced_data:
+            f.write(json.dumps(item) + '\n')
+    
+    print(f'Created enhanced data file: {target_file}', file=sys.stderr)
+    
+    # Clean up temporary files
+    if os.path.exists(results_file):
+        os.remove(results_file)
+        print(f'Cleaned up results file: {results_file}', file=sys.stderr)
+    
+    if os.path.exists(batch_info.get('batch_requests_file', '')):
+        os.remove(batch_info['batch_requests_file'])
+        print(f'Cleaned up requests file: {batch_info["batch_requests_file"]}', file=sys.stderr)
+    
+    return True
+
+def main():
+    args = parse_args()
+    
+    success = process_batch_results(
+        args.data, 
+        wait_for_completion=args.wait,
+        max_wait=args.max_wait
+    )
+    
+    if success:
+        print('Batch processing completed successfully')
+        sys.exit(0)
+    else:
+        print('Batch processing failed')
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()

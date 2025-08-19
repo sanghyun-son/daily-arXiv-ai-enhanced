@@ -13,8 +13,9 @@ This innovative tool transforms how you stay updated with arXiv papers by combin
 - Completely free to deploy and use
 
 🤖 **Smart AI Summarization**
-- Daily paper crawling with DeepSeek-powered summaries
-- Cost-effective: Only ~0.2 CNY per day during off-peak hours
+- Daily paper crawling with AI-powered summaries using OpenAI Batch API
+- Cost-effective batch processing: ~50% savings with 24-hour processing window
+- Twice-daily processing: Crawl at 18:00 KST, process at 6:00 KST
 
 💫 **Smart Reading Experience**
 - Personalized paper highlighting based on your interests
@@ -49,7 +50,9 @@ This innovative tool transforms how you stay updated with arXiv papers by combin
 
 
 # How to use
-This repo will daily crawl arXiv papers about **cs.CV, cs.GR, cs.CL and cs.AI**, and use **DeepSeek** to summarize the papers in **Chinese**.
+This repo will crawl arXiv papers twice daily about **cs.CV, cs.GR, cs.CL and cs.AI**, and use **OpenAI Batch API** to cost-effectively summarize the papers in **Chinese**.
+- **18:00 KST**: Crawl papers and submit batch job
+- **6:00 KST**: Process batch results and update the website
 If you wish to crawl other arXiv categories, use other LLMs, or other languages, please follow the instructions.
 Otherwise, you can directly use this repo in https://dw-dengwei.github.io/daily-arXiv-ai-enhanced/. Please star it if you like :)
 
@@ -66,7 +69,9 @@ Otherwise, you can directly use this repo in https://dw-dengwei.github.io/daily-
    4. `EMAIL`: your email for push to GitHub
    5. `NAME`: your name for push to GitHub
 7. Go to your-own-repo -> Actions -> arXiv-daily-ai-enhanced
-8. You can manually click **Run workflow** to test if it works well (it may take about one hour). By default, this action will automatically run every day. You can modify it in `.github/workflows/run.yml`
+8. You can manually click **Run workflow** to test if it works well (it may take about one hour). By default, this action will automatically run twice a day:
+   - **18:00 KST**: Crawl arXiv papers and submit batch job (`.github/workflows/crawl.yml`)
+   - **6:00 KST**: Process batch output and generate summaries (`.github/workflows/process.yml`)
 9. Set up GitHub pages: Go to your own repo -> Settings -> Pages. In `Build and deployment`, set `Source="Deploy from a branch"`, `Branch="main", "/(root)"`. Wait for a few minutes, go to https://\<username\>.github.io/daily-arXiv-ai-enhanced/. Please see this [issue](https://github.com/dw-dengwei/daily-arXiv-ai-enhanced/issues/14) for more precise instructions.
 
 # To-do list
