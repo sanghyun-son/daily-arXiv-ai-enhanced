@@ -953,9 +953,40 @@ function showPaperDetails(paper, paperIndex) {
   document.getElementById('paperLink').href = paper.url;
   document.getElementById('pdfLink').href = paper.url.replace('abs', 'pdf');
   document.getElementById('htmlLink').href = paper.url.replace('abs', 'html');
-  // 提示词来自：https://papers.cool/
-  prompt = `请你阅读这篇文章${paper.url.replace('abs', 'pdf')},总结一下这篇文章解决的问题、相关工作、研究方法、做了什么实验及其结果、结论，最后整体总结一下这篇文章的内容`
-  document.getElementById('kimiChatLink').href = `https://www.kimi.com/_prefill_chat?prefill_prompt=${prompt}&system_prompt=你是一个学术助手，后面的对话将围绕着以下论文内容进行，已经通过链接给出了论文的PDF和论文已有的FAQ。用户将继续向你咨询论文的相关问题，请你作出专业的回答，不要出现第一人称，当涉及到分点回答时，鼓励你以markdown格式输出。&send_immediately=true&force_search=false`;
+  // Prompt inspired by: https://papers.cool/
+  prompt = `Please read this paper ${paper.url.replace('abs', 'pdf')} and summarize the problem it solves, related work, research methodology, experiments conducted and their results, conclusions, and provide an overall summary of the paper's content. Provide your response in Korean.`
+  document.getElementById('chatGptLink').href = `https://chat.openai.com/`;
+  document.getElementById('chatGptLink').onclick = function(e) {
+    e.preventDefault();
+    // Copy the prompt to clipboard
+    navigator.clipboard.writeText(prompt).then(function() {
+      // Show a brief notification
+      const notification = document.createElement('div');
+      notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #10a37f;
+        color: white;
+        padding: 10px 15px;
+        border-radius: 5px;
+        z-index: 10000;
+        font-size: 14px;
+      `;
+      notification.textContent = 'Prompt copied! Open ChatGPT and paste it.';
+      document.body.appendChild(notification);
+      
+      // Remove notification after 3 seconds
+      setTimeout(() => {
+        if (notification.parentNode) {
+          notification.remove();
+        }
+      }, 3000);
+      
+      // Open ChatGPT in new tab
+      window.open('https://chat.openai.com/', '_blank');
+    });
+  };
   
   // 更新论文位置信息
   const paperPosition = document.getElementById('paperPosition');
