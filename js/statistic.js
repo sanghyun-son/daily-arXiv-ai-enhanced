@@ -203,20 +203,11 @@ function formatDateForAPI(date) {
 // Detect language for a specific date by checking available files
 async function detectLanguageForDate(date) {
   try {
-    // Try Chinese first (default)
-    const chineseResponse = await fetch(`data/${date}_AI_enhanced_Chinese.jsonl`);
-    if (chineseResponse.ok) {
-      return 'Chinese';
-    }
-    
-    // Try Korean if Chinese doesn't exist
     const koreanResponse = await fetch(`data/${date}_AI_enhanced_Korean.jsonl`);
     if (koreanResponse.ok) {
       return 'Korean';
     }
-    
-    // Default to Chinese if neither exists
-    return 'Chinese';
+    return 'English';
   } catch (error) {
     console.error(`Error detecting language for date ${date}:`, error);
     return 'Chinese'; // Default fallback
