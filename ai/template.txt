@@ -1,4 +1,4 @@
-Please analyze the following abstract of papers. 
+주어진 논문의 abstract를 분석해줘.
 
 Content:
 {content}
