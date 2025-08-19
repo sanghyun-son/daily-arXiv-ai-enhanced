@@ -1,0 +1,127 @@
+name: arXiv-process-batch
+
+on:
+  schedule:
+    # 6:00 KST = 21:00 UTC previous day (process batch output)
+    - cron: "0 21 * * *"
+  workflow_dispatch:
+
+jobs:
+  process-batch-output:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install dependencies
+      run: |
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        uv sync
+        
+    - name: Check for batch job completion
+      id: batch_check
+      run: |
+        source .venv/bin/activate
+        today=$(date -u "+%Y-%m-%d")
+        echo "Checking for batch job completion for $today..."
+        
+        # Check if batch job was submitted
+        if [ ! -f "data/${today}_batch_submitted.txt" ]; then
+            echo "No batch job found for today, checking previous day..."
+            yesterday=$(date -u -d "yesterday" "+%Y-%m-%d")
+            if [ -f "data/${yesterday}_batch_submitted.txt" ]; then
+                echo "Found batch job from yesterday: $yesterday"
+                echo "process_date=$yesterday" >> $GITHUB_OUTPUT
+            else
+                echo "No batch job found for processing"
+                echo "process_date=" >> $GITHUB_OUTPUT
+                exit 1
+            fi
+        else
+            echo "Found batch job for today: $today"
+            echo "process_date=$today" >> $GITHUB_OUTPUT
+        fi
+        
+    - name: AI Enhancement Processing (Batch - No Wait)
+      if: steps.batch_check.outputs.process_date != ''
+      run: |
+        source .venv/bin/activate
+        process_date=${{ steps.batch_check.outputs.process_date }}
+        echo "Starting AI enhancement batch processing for $process_date..."
+        
+        cd ai
+        export OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+        export OPENAI_BASE_URL=${{ secrets.OPENAI_BASE_URL }}
+        export LANGUAGE="${{ vars.LANGUAGE }}"
+        export MODEL_NAME="${{ vars.MODEL_NAME }}"
+        
+        # Process batch results (quick check - no waiting)
+        python process_batch.py --data ../data/${process_date}.jsonl
+        
+        # Check if batch processing was successful
+        if [ $? -ne 0 ]; then
+            echo "Batch job not ready yet or failed - will retry in next scheduled run"
+            exit 0  # Exit gracefully, do not fail the workflow
+        fi
+        echo "AI enhancement batch processing completed"
+        
+    - name: Convert to Markdown
+      if: steps.batch_check.outputs.process_date != ''
+      run: |
+        source .venv/bin/activate
+        process_date=${{ steps.batch_check.outputs.process_date }}
+        echo "Converting to Markdown format..."
+        
+        # Set environment variables
+        export LANGUAGE="${{ vars.LANGUAGE }}"
+        
+        cd to_md
+        
+        # Use AI enhanced file for conversion
+        AI_FILE="../data/${process_date}_AI_enhanced_${LANGUAGE}.jsonl"
+        
+        if [ -f "$AI_FILE" ]; then
+            echo "Using AI enhanced file for conversion..."
+            python convert.py --data "$AI_FILE"
+        else
+            echo "Error: AI enhanced file not found"
+            echo "AI file: $AI_FILE"
+            exit 1
+        fi
+        
+        # Check if conversion was successful
+        if [ $? -ne 0 ]; then
+            echo "Markdown conversion failed"
+            exit 1
+        fi
+        echo "Markdown conversion completed"
+        
+    - name: Update file list
+      if: steps.batch_check.outputs.process_date != ''
+      run: |
+        echo "Updating file list..."
+        ls data/*.jsonl | sed 's|data/||' > assets/file-list.txt
+        echo "File list updated"
+        
+    - name: Commit processed results
+      if: steps.batch_check.outputs.process_date != ''
+      run: |
+        git config --global user.email "${{ vars.EMAIL }}"
+        git config --global user.name "${{ vars.NAME }}"
+        git add .
+        # Check if there are changes to commit
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+          exit 0
+        fi
+        git commit -m "process: $(date -u '+%Y-%m-%d') arXiv papers - batch processing completed"
+        git push origin main
+        echo "Processed results committed and pushed"
+        
+    - name: Cleanup batch markers
+      if: steps.batch_check.outputs.process_date != ''
+      run: |
+        process_date=${{ steps.batch_check.outputs.process_date }}
+        # Remove batch submission marker after successful processing
+        if [ -f "data/${process_date}_batch_submitted.txt" ]; then
+            rm "data/${process_date}_batch_submitted.txt"
+            echo "Cleaned up batch submission marker"
+        fi
