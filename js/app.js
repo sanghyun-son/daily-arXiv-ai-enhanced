@@ -425,7 +425,8 @@ async function fetchAvailableDates() {
     const text = await response.text();
     const files = text.trim().split('\n');
 
-    const dateRegex = /(\d{4}-\d{2}-\d{2})_AI_enhanced_Chinese\.jsonl/;
+    // Dynamic language detection - look for both Chinese and Korean files
+    const dateRegex = /(\d{4}-\d{2}-\d{2})_AI_enhanced_(Chinese|Korean)\.jsonl/;
     const dates = [];
     files.forEach(file => {
       const match = file.match(dateRegex);
@@ -531,7 +532,9 @@ async function loadPapersByDate(date) {
   `;
   
   try {
-    const response = await fetch(`data/${date}_AI_enhanced_Chinese.jsonl`);
+    // Try to find the file with the correct language
+    const language = await detectLanguageForDate(date);
+    const response = await fetch(`data/${date}_AI_enhanced_${language}.jsonl`);
     const text = await response.text();
     
     paperData = parseJsonlData(text, date);
@@ -595,6 +598,29 @@ function parseJsonlData(jsonlText, date) {
   });
   
   return result;
+}
+
+// Detect language for a specific date by checking available files
+async function detectLanguageForDate(date) {
+  try {
+    // Try Chinese first (default)
+    const chineseResponse = await fetch(`data/${date}_AI_enhanced_Chinese.jsonl`);
+    if (chineseResponse.ok) {
+      return 'Chinese';
+    }
+    
+    // Try Korean if Chinese doesn't exist
+    const koreanResponse = await fetch(`data/${date}_AI_enhanced_Korean.jsonl`);
+    if (koreanResponse.ok) {
+      return 'Korean';
+    }
+    
+    // Default to Chinese if neither exists
+    return 'Chinese';
+  } catch (error) {
+    console.error(`Error detecting language for date ${date}:`, error);
+    return 'Chinese'; // Default fallback
+  }
 }
 
 // 获取所有类别并按偏好排序
@@ -1135,7 +1161,9 @@ async function loadPapersByDateRange(startDate, endDate) {
     const allPaperData = {};
     
     for (const date of validDatesInRange) {
-      const response = await fetch(`data/${date}_AI_enhanced_Chinese.jsonl`);
+      // Try to find the file with the correct language
+      const language = await detectLanguageForDate(date);
+      const response = await fetch(`data/${date}_AI_enhanced_${language}.jsonl`);
       const text = await response.text();
       const dataPapers = parseJsonlData(text, date);
       
