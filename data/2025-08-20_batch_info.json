@@ -1,0 +1,9 @@
+{
+  "batch_job_id": "batch_68a596d878fc8190b36d2a3a28cecad3",
+  "batch_input_file_id": "file-5on2AdYV6J8zWmEftobMuz",
+  "status": "validating",
+  "created_at": 1755682520,
+  "data_file": "../data/2025-08-20.jsonl",
+  "language": "Korean",
+  "batch_requests_file": "../data/2025-08-20_batch_requests.jsonl"
+}
