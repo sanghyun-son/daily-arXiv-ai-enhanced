@@ -12,6 +12,14 @@ The AI enhancement features have been migrated from `ai/enhance.py` to the batch
 - `ai/submit_batch.py` - Submits batch jobs to OpenAI
 - `ai/process_batch.py` - Processes batch results with filtering logic
 
+### Workflow Timing
+
+The system now uses a two-stage workflow:
+1. **Crawl & Submit** (18:00 KST daily) - Crawls papers and submits batch jobs
+2. **Process & Convert** (19:00 KST and 07:00 KST daily) - Processes batch results and converts to markdown
+
+The processing workflow runs every 12 hours to handle batch jobs that may take time to complete.
+
 ## Features
 
 ### 🎯 **Supported Endpoints**

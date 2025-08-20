@@ -28,6 +28,11 @@ def parse_args():
         default=3600,
         help="Maximum wait time in seconds (default: 1 hour)",
     )
+    parser.add_argument(
+        "--no_fail",
+        action="store_true",
+        help="Do not exit with error code 1 when batch job is not found (for workflows)",
+    )
     return parser.parse_args()
 
 
@@ -125,6 +130,10 @@ def process_batch_results(
     batch_info_file = data_file.replace(".jsonl", "_batch_info.json")
     if not os.path.exists(batch_info_file):
         print(f"Batch info file not found: {batch_info_file}", file=sys.stderr)
+        print(
+            "This is normal if the batch job hasn't been submitted yet or is still processing",
+            file=sys.stderr,
+        )
         return False
 
     with open(batch_info_file, "r") as f:
@@ -329,8 +338,12 @@ def main():
         print("Batch processing completed successfully")
         sys.exit(0)
     else:
-        print("Batch processing failed")
-        sys.exit(1)
+        if args.no_fail:
+            print("Batch processing failed but continuing (no_fail mode)")
+            sys.exit(0)
+        else:
+            print("Batch processing failed")
+            sys.exit(1)
 
 
 if __name__ == "__main__":

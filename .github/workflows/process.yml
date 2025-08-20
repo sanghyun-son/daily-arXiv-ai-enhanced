@@ -2,8 +2,10 @@ name: arXiv-process-batch
 
 on:
   schedule:
-    # 6:00 KST = 21:00 UTC previous day (process batch output)
-    - cron: "0 21 * * *"
+    # Run every 12 hours, starting 1 hour after batch submission
+    # 19:00 KST = 10:00 UTC (1 hour after 18:00 KST submission)
+    # 07:00 KST = 22:00 UTC (13 hours after submission)
+    - cron: "0 10,21 * * *"
   workflow_dispatch:
 
 jobs:
@@ -31,9 +33,9 @@ jobs:
                 echo "Found batch job from yesterday: $yesterday"
                 echo "process_date=$yesterday" >> $GITHUB_OUTPUT
             else
-                echo "No batch job found for processing"
+                echo "No batch job found for processing - this is normal, will retry in 12 hours"
                 echo "process_date=" >> $GITHUB_OUTPUT
-                exit 1
+                exit 0  # Exit gracefully, do not fail the workflow
             fi
         else
             echo "Found batch job for today: $today"
@@ -54,12 +56,12 @@ jobs:
         export MODEL_NAME="${{ vars.MODEL_NAME }}"
         export INTEREST="${{ vars.INTEREST }}"
         
-        # Process batch results (quick check - no waiting)
-        python process_batch.py --data ../data/${process_date}.jsonl
+        # Process batch results (quick check - no waiting, no fail mode)
+        python process_batch.py --data ../data/${process_date}.jsonl --no_fail
         
         # Check if batch processing was successful
         if [ $? -ne 0 ]; then
-            echo "Batch job not ready yet or failed - will retry in next scheduled run"
+            echo "Batch job not ready yet or failed - will retry in next scheduled run (12 hours)"
             exit 0  # Exit gracefully, do not fail the workflow
         fi
         echo "AI enhancement batch processing completed"
