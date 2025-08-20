@@ -19,7 +19,7 @@ if [ -z "$OPENAI_API_KEY" ]; then
     echo "   export LANGUAGE=\"Chinese\"                           # Language setting"
     echo "   export CATEGORIES=\"cs.CV, cs.CL\"                    # Categories of interest"
     echo "   export MODEL_NAME=\"gpt-4o-mini\"                     # Model name"
-    echo "   export INTEREST=\"machine learning, deep learning\"   # Research interests for relevance filtering"
+    echo "   export INTERESTS=\"machine learning, deep learning\"   # Research interests for relevance filtering"
     echo ""
     echo "💡 After setting, rerun this script for complete testing"
     echo "🚀 Or continue with partial workflow (crawl + dedup check)"
@@ -39,7 +39,7 @@ else
     export CATEGORIES="${CATEGORIES:-cs.CV, cs.CL}"
     export MODEL_NAME="${MODEL_NAME:-gpt-4o-mini}"
     export OPENAI_BASE_URL="${OPENAI_BASE_URL:-https://api.openai.com/v1}"
-    export INTEREST="${INTEREST:-}"
+    export INTERESTS="${INTERESTS:-}"
     
     echo "🔧 Current configuration:"
     echo "   LANGUAGE: $LANGUAGE"

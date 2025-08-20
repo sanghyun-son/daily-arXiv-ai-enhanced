@@ -54,7 +54,7 @@ jobs:
         export OPENAI_BASE_URL=${{ secrets.OPENAI_BASE_URL }}
         export LANGUAGE="${{ vars.LANGUAGE }}"
         export MODEL_NAME="${{ vars.MODEL_NAME }}"
-        export INTEREST="${{ vars.INTEREST }}"
+        export INTERESTS="${{ vars.INTERESTS }}"
         
         # Process batch results (quick check - no waiting, no fail mode)
         python process_batch.py --data ../data/${process_date}.jsonl --no_fail

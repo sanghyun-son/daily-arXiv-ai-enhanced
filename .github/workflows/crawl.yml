@@ -38,7 +38,7 @@ jobs:
         export LANGUAGE="${{ vars.LANGUAGE }}"
         export CATEGORIES="${{ vars.CATEGORIES }}"
         export MODEL_NAME="${{ vars.MODEL_NAME }}"
-        export INTEREST="${{ vars.INTEREST }}"
+        export INTERESTS="${{ vars.INTERESTS }}"
         
         # Use Scrapy to crawl
         scrapy crawl arxiv -o ../data/${today}.jsonl
@@ -63,7 +63,7 @@ jobs:
         export OPENAI_BASE_URL=${{ secrets.OPENAI_BASE_URL }}
         export LANGUAGE="${{ vars.LANGUAGE }}"
         export MODEL_NAME="${{ vars.MODEL_NAME }}"
-        export INTEREST="${{ vars.INTEREST }}"
+        export INTERESTS="${{ vars.INTERESTS }}"
         
         # Submit actual batch job to OpenAI
         python submit_batch.py --data ../data/${today}.jsonl
