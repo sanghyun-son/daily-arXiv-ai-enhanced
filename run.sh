@@ -19,6 +19,7 @@ if [ -z "$OPENAI_API_KEY" ]; then
     echo "   export LANGUAGE=\"Chinese\"                           # Language setting"
     echo "   export CATEGORIES=\"cs.CV, cs.CL\"                    # Categories of interest"
     echo "   export MODEL_NAME=\"gpt-4o-mini\"                     # Model name"
+    echo "   export INTEREST=\"machine learning, deep learning\"   # Research interests for relevance filtering"
     echo ""
     echo "💡 After setting, rerun this script for complete testing"
     echo "🚀 Or continue with partial workflow (crawl + dedup check)"
@@ -38,12 +39,14 @@ else
     export CATEGORIES="${CATEGORIES:-cs.CV, cs.CL}"
     export MODEL_NAME="${MODEL_NAME:-gpt-4o-mini}"
     export OPENAI_BASE_URL="${OPENAI_BASE_URL:-https://api.openai.com/v1}"
+    export INTEREST="${INTEREST:-}"
     
     echo "🔧 Current configuration:"
     echo "   LANGUAGE: $LANGUAGE"
     echo "   CATEGORIES: $CATEGORIES"
     echo "   MODEL_NAME: $MODEL_NAME"
     echo "   OPENAI_BASE_URL: $OPENAI_BASE_URL"
+    echo "   INTEREST: $INTEREST"
 fi
 
 echo ""
@@ -103,10 +106,23 @@ cd ..
 if [ "$PARTIAL_MODE" = "false" ]; then
     echo "Step 3: AI enhancement processing..."
     cd ai
-    python enhance.py --data ../data/${today}.jsonl
+    
+    # Submit batch job
+    echo "📤 Submitting batch job for AI processing..."
+    python submit_batch.py --data ../data/${today}.jsonl
     
     if [ $? -ne 0 ]; then
-        echo "❌ AI processing failed"
+        echo "❌ Batch job submission failed"
+        exit 1
+    fi
+    echo "✅ Batch job submitted successfully"
+    
+    # Process batch results (wait for completion)
+    echo "⏳ Processing batch results..."
+    python process_batch.py --data ../data/${today}.jsonl --wait
+    
+    if [ $? -ne 0 ]; then
+        echo "❌ Batch processing failed"
         exit 1
     fi
     echo "✅ AI enhancement processing completed"

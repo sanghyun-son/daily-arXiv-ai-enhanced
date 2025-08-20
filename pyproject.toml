@@ -47,4 +47,5 @@ dev = [
     "pytest>=8.4.1",
     "pytest-cov>=6.2.1",
     "pytest-mock>=3.14.1",
+    "pytest-httpserver>=1.0.7",
 ]

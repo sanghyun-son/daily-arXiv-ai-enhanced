@@ -1,4 +1,7 @@
-주어진 논문의 abstract를 분석해줘.
+주어진 논문의 abstract를 분석해줘. 아래의 interest를 참조해서 relevance도 결정해.
+
+Interest:
+{interest_section}
 
 Content:
 {content}

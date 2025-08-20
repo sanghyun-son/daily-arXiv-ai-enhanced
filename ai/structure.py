@@ -7,3 +7,4 @@ class Structure(BaseModel):
     method: str = Field(description="method of this paper")
     result: str = Field(description="result of this paper")
     conclusion: str = Field(description="conclusion of this paper")
+    relevance: str = Field(description="relevance level between the abstract and user interests: Must, High, Medium, Low, or Irrelevant")

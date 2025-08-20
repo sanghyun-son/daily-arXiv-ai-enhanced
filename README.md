@@ -19,6 +19,9 @@ This innovative tool transforms how you stay updated with arXiv papers by combin
 
 💫 **Smart Reading Experience**
 - Personalized paper highlighting based on your interests
+- AI-powered relevance assessment with 5-level filtering (Must, High, Medium, Low, Irrelevant)
+- Automatic filtering: Low and Irrelevant papers are excluded from the final database
+- Relevance distribution statistics and exclusion rate reporting
 - Cross-device compatibility (desktop & mobile)
 - Local preference storage for privacy
 - Flexible date range filtering
@@ -68,6 +71,7 @@ Otherwise, you can directly use this repo in https://dw-dengwei.github.io/daily-
    3. `MODEL_NAME`: such as "deepseek-chat"
    4. `EMAIL`: your email for push to GitHub
    5. `NAME`: your name for push to GitHub
+   6. `INTEREST`: (optional) your research interests for relevance filtering, such as "machine learning, deep learning, computer vision". The AI will assess relevance levels: Must, High, Medium, Low, or Irrelevant. Papers with Low or Irrelevant relevance are automatically excluded from the final database.
 7. Go to your-own-repo -> Actions -> arXiv-daily-ai-enhanced
 8. You can manually click **Run workflow** to test if it works well (it may take about one hour). By default, this action will automatically run twice a day:
    - **18:00 KST**: Crawl arXiv papers and submit batch job (`.github/workflows/crawl.yml`)
