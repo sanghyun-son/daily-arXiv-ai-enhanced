@@ -73,20 +73,68 @@ def download_batch_results(output_file_id: str, output_path: str) -> bool:
 def parse_batch_results(results_file: str) -> Dict[str, Dict]:
     """Parse batch results and return a mapping of custom_id to result"""
     results = {}
+    error_count = 0
+    function_call_count = 0
+    no_function_call_count = 0
 
     with open(results_file, "r") as f:
         for line in f:
             result = json.loads(line)
             custom_id = result["custom_id"]
 
+            # Debug: Print first few results to understand structure
+            if len(results) < 3:
+                print(
+                    f"DEBUG: Result structure for {custom_id}:", file=sys.stderr
+                )
+                print(
+                    f"  Response keys: {list(result['response'].keys())}",
+                    file=sys.stderr,
+                )
+                if "body" in result["response"]:
+                    print(
+                        f"  Body keys: {list(result['response']['body'].keys())}",
+                        file=sys.stderr,
+                    )
+                    if "choices" in result["response"]["body"]:
+                        print(
+                            f"  Choices length: {len(result['response']['body']['choices'])}",
+                            file=sys.stderr,
+                        )
+                        if result["response"]["body"]["choices"]:
+                            choice = result["response"]["body"]["choices"][0]
+                            print(
+                                f"  Choice keys: {list(choice.keys())}",
+                                file=sys.stderr,
+                            )
+                            if "message" in choice:
+                                print(
+                                    f"  Message keys: {list(choice['message'].keys())}",
+                                    file=sys.stderr,
+                                )
+
             # Extract the function call result
-            if result["response"]["body"]["choices"][0]["message"].get(
-                "function_call"
-            ):
-                function_call = result["response"]["body"]["choices"][0][
-                    "message"
-                ]["function_call"]
-                if function_call["name"] == "Structure":
+            try:
+                message = result["response"]["body"]["choices"][0]["message"]
+
+                # Check for function_call (old format) or tool_calls (new format)
+                function_call = None
+                if message.get("function_call"):
+                    function_call = message["function_call"]
+                    function_call_count += 1
+                elif (
+                    message.get("tool_calls") and len(message["tool_calls"]) > 0
+                ):
+                    # New format: tool_calls array
+                    tool_call = message["tool_calls"][0]
+                    if (
+                        tool_call.get("type") == "function"
+                        and tool_call["function"]["name"] == "Structure"
+                    ):
+                        function_call = tool_call["function"]
+                        function_call_count += 1
+
+                if function_call and function_call.get("name") == "Structure":
                     try:
                         ai_result = json.loads(function_call["arguments"])
                         # Ensure relevance field exists for legacy compatibility
@@ -98,6 +146,11 @@ def parse_batch_results(results_file: str) -> Dict[str, Dict]:
                             f"Error parsing function call arguments for {custom_id}: {e}",
                             file=sys.stderr,
                         )
+                        print(
+                            f"  Arguments: {function_call['arguments'][:200]}...",
+                            file=sys.stderr,
+                        )
+                        error_count += 1
                         results[custom_id] = {
                             "tldr": "Error parsing result",
                             "motivation": "Error parsing result",
@@ -106,18 +159,52 @@ def parse_batch_results(results_file: str) -> Dict[str, Dict]:
                             "conclusion": "Error parsing result",
                             "relevance": "Error",
                         }
-            else:
+                else:
+                    no_function_call_count += 1
+                    print(
+                        f"No Structure function call found for {custom_id}",
+                        file=sys.stderr,
+                    )
+                    # Debug: Print what we found instead
+                    if len(results) < 3:
+                        print(
+                            f"  Message content: {message.get('content', 'No content')[:100]}...",
+                            file=sys.stderr,
+                        )
+                        if message.get("tool_calls"):
+                            print(
+                                f"  Tool calls: {message['tool_calls']}",
+                                file=sys.stderr,
+                            )
+                    results[custom_id] = {
+                        "tldr": "No AI result",
+                        "motivation": "No AI result",
+                        "method": "No AI result",
+                        "result": "No AI result",
+                        "conclusion": "No AI result",
+                        "relevance": "Error",
+                    }
+            except (KeyError, IndexError) as e:
+                error_count += 1
                 print(
-                    f"No function call found for {custom_id}", file=sys.stderr
+                    f"Error accessing response structure for {custom_id}: {e}",
+                    file=sys.stderr,
                 )
                 results[custom_id] = {
-                    "tldr": "No AI result",
-                    "motivation": "No AI result",
-                    "method": "No AI result",
-                    "result": "No AI result",
-                    "conclusion": "No AI result",
+                    "tldr": "Error accessing result",
+                    "motivation": "Error accessing result",
+                    "method": "Error accessing result",
+                    "result": "Error accessing result",
+                    "conclusion": "Error accessing result",
                     "relevance": "Error",
                 }
+
+    # Print summary statistics
+    print(f"Parsing summary:", file=sys.stderr)
+    print(f"  Total results: {len(results)}", file=sys.stderr)
+    print(f"  Function calls found: {function_call_count}", file=sys.stderr)
+    print(f"  No function calls: {no_function_call_count}", file=sys.stderr)
+    print(f"  Parsing errors: {error_count}", file=sys.stderr)
 
     return results
 

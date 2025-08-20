@@ -117,7 +117,17 @@ jobs:
         fi
         git commit -m "process: $(date -u '+%Y-%m-%d') arXiv papers - batch processing completed"
         git push origin main
-        echo "Processed results committed and pushed"
+        echo "Processed results committed and pushed to main"
+        
+    - name: Update gh-pages branch
+      if: steps.batch_check.outputs.process_date != ''
+      run: |
+        git config --global user.email "${{ vars.EMAIL }}"
+        git config --global user.name "${{ vars.NAME }}"
+        # Create or update gh-pages branch with current content
+        git checkout -B gh-pages
+        git push origin gh-pages --force
+        echo "gh-pages branch updated for deployment"
         
     - name: Cleanup batch markers
       if: steps.batch_check.outputs.process_date != ''

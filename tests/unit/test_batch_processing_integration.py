@@ -53,32 +53,38 @@ class TestBatchProcessingIntegration:
                                 "content": f"Analyze: {item['summary']}",
                             },
                         ],
-                        "functions": [
+                        "tools": [
                             {
-                                "name": "Structure",
-                                "description": "Analyze paper abstract and extract key information",
-                                "parameters": {
-                                    "type": "object",
-                                    "properties": {
-                                        "tldr": {"type": "string"},
-                                        "motivation": {"type": "string"},
-                                        "method": {"type": "string"},
-                                        "result": {"type": "string"},
-                                        "conclusion": {"type": "string"},
-                                        "relevance": {"type": "string"},
+                                "type": "function",
+                                "function": {
+                                    "name": "Structure",
+                                    "description": "Analyze paper abstract and extract key information",
+                                    "parameters": {
+                                        "type": "object",
+                                        "properties": {
+                                            "tldr": {"type": "string"},
+                                            "motivation": {"type": "string"},
+                                            "method": {"type": "string"},
+                                            "result": {"type": "string"},
+                                            "conclusion": {"type": "string"},
+                                            "relevance": {"type": "string"},
+                                        },
+                                        "required": [
+                                            "tldr",
+                                            "motivation",
+                                            "method",
+                                            "result",
+                                            "conclusion",
+                                            "relevance",
+                                        ],
                                     },
-                                    "required": [
-                                        "tldr",
-                                        "motivation",
-                                        "method",
-                                        "result",
-                                        "conclusion",
-                                        "relevance",
-                                    ],
                                 },
                             }
                         ],
-                        "function_call": {"name": "Structure"},
+                        "tool_choice": {
+                            "type": "function",
+                            "function": {"name": "Structure"},
+                        },
                     },
                 }
                 batch_requests.append(request)
@@ -88,13 +94,14 @@ class TestBatchProcessingIntegration:
             assert batch_requests[0]["custom_id"] == "test1"
             assert batch_requests[1]["custom_id"] == "test2"
             assert (
-                "Structure" in batch_requests[0]["body"]["functions"][0]["name"]
+                "Structure"
+                in batch_requests[0]["body"]["tools"][0]["function"]["name"]
             )
             assert (
                 "relevance"
-                in batch_requests[0]["body"]["functions"][0]["parameters"][
-                    "properties"
-                ]
+                in batch_requests[0]["body"]["tools"][0]["function"][
+                    "parameters"
+                ]["properties"]
             )
 
         finally:

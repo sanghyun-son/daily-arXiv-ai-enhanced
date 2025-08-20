@@ -56,50 +56,56 @@ def create_batch_requests(
                         ),
                     },
                 ],
-                "functions": [
+                "tools": [
                     {
-                        "name": "Structure",
-                        "description": "Analyze paper abstract and extract key information",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "tldr": {
-                                    "type": "string",
-                                    "description": "generate a too long; didn't read summary",
+                        "type": "function",
+                        "function": {
+                            "name": "Structure",
+                            "description": "Analyze paper abstract and extract key information",
+                            "parameters": {
+                                "type": "object",
+                                "properties": {
+                                    "tldr": {
+                                        "type": "string",
+                                        "description": "generate a too long; didn't read summary",
+                                    },
+                                    "motivation": {
+                                        "type": "string",
+                                        "description": "describe the motivation in this paper",
+                                    },
+                                    "method": {
+                                        "type": "string",
+                                        "description": "method of this paper",
+                                    },
+                                    "result": {
+                                        "type": "string",
+                                        "description": "result of this paper",
+                                    },
+                                    "conclusion": {
+                                        "type": "string",
+                                        "description": "conclusion of this paper",
+                                    },
+                                    "relevance": {
+                                        "type": "string",
+                                        "description": "relevance level between the abstract and user interests: Must, High, Medium, Low, or Irrelevant",
+                                    },
                                 },
-                                "motivation": {
-                                    "type": "string",
-                                    "description": "describe the motivation in this paper",
-                                },
-                                "method": {
-                                    "type": "string",
-                                    "description": "method of this paper",
-                                },
-                                "result": {
-                                    "type": "string",
-                                    "description": "result of this paper",
-                                },
-                                "conclusion": {
-                                    "type": "string",
-                                    "description": "conclusion of this paper",
-                                },
-                                "relevance": {
-                                    "type": "string",
-                                    "description": "relevance level between the abstract and user interests: Must, High, Medium, Low, or Irrelevant",
-                                },
+                                "required": [
+                                    "tldr",
+                                    "motivation",
+                                    "method",
+                                    "result",
+                                    "conclusion",
+                                    "relevance",
+                                ],
                             },
-                            "required": [
-                                "tldr",
-                                "motivation",
-                                "method",
-                                "result",
-                                "conclusion",
-                                "relevance",
-                            ],
                         },
                     }
                 ],
-                "function_call": {"name": "Structure"},
+                "tool_choice": {
+                    "type": "function",
+                    "function": {"name": "Structure"},
+                },
             },
         }
         batch_requests.append(request)
