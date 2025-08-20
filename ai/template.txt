@@ -1,7 +1,8 @@
-주어진 논문의 abstract를 분석해줘. 아래의 interest를 참조해서 relevance도 결정해.
+주어진 논문의 abstract를 분석해줘.
+아래에 제공된 **관심 분야(Interest)**를 기준으로 논문의 관련성을 평가하고, relevance 레벨도 함께 제시해.
 
 Interest:
 {interest_section}
 
-Content:
+Content (Abstract):
 {content}
