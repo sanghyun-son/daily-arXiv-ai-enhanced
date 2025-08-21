@@ -1,6 +1,7 @@
 import scrapy
 import os
 import re
+from datetime import datetime
 
 
 class ArxivSpider(scrapy.Spider):
@@ -8,7 +9,7 @@ class ArxivSpider(scrapy.Spider):
         super().__init__(*args, **kwargs)
         categories = os.environ.get("CATEGORIES", "cs.CV")
         categories = categories.split(",")
-        # 保存目标分类列表，用于后续验证
+        # Save target categories list for validation
         self.target_categories = set(map(str.strip, categories))
         self.start_urls = [
             f"https://arxiv.org/list/{cat}/new"

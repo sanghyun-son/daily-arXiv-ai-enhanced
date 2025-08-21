@@ -179,27 +179,28 @@ for date in "${DATES[@]}"; do
     
     if [[ "$MODE" == "crawl" ]]; then
         # CRAWL MODE: Crawl data only
-        echo "Step 1: Crawling data for $date..."
+        echo "Step 1: Checking for existing data for $date..."
         
-        # Check if date's file exists, delete if found
+        # Check if date's file already exists
         if [ -f "data/${date}.jsonl" ]; then
-            echo "🗑️ Found existing file for $date, deleting for fresh start..."
-            rm "data/${date}.jsonl"
+            echo "📁 Found existing file for $date, skipping crawl..."
+        else
+            echo "📝 No existing file found, starting crawl for $date..."
+            
+            cd daily_arxiv
+            scrapy crawl arxiv -o ../data/${date}.jsonl
+            
+            if [ ! -f "../data/${date}.jsonl" ]; then
+                echo "❌ Crawling failed for $date, no data file generated"
+                exit 1
+            fi
+            echo "✅ Crawling completed for $date"
+            cd ..
         fi
-        
-        cd daily_arxiv
-        scrapy crawl arxiv -o ../data/${date}.jsonl
-        
-        if [ ! -f "../data/${date}.jsonl" ]; then
-            echo "❌ Crawling failed for $date, no data file generated"
-            exit 1
-        fi
-        echo "✅ Crawling completed for $date"
-        cd ..
         
         # Check duplicates
         echo "Step 2: Performing intelligent deduplication check for $date..."
-        python daily_arxiv/check_stats.py
+        python daily_arxiv/daily_arxiv/check_stats.py --date $date
         dedup_exit_code=$?
         
         case $dedup_exit_code in
@@ -220,6 +221,29 @@ for date in "${DATES[@]}"; do
                 ;;
         esac
         
+        # Submit batch job for AI processing
+        echo "Step 3: Submitting batch job for AI processing for $date..."
+        cd ai
+        
+        # Check if batch was already submitted
+        if [ -f "../data/${date}_batch_submitted.txt" ]; then
+            echo "📁 Batch job already submitted for $date, skipping..."
+            cd ..
+        else
+            echo "📤 Submitting batch job for AI processing..."
+            python submit_batch.py --data ../data/${date}.jsonl
+            
+            if [ $? -ne 0 ]; then
+                echo "❌ Batch job submission failed for $date"
+                exit 1
+            fi
+            
+            # Create a marker file to indicate batch job is submitted
+            echo "$(date -u)" > "../data/${date}_batch_submitted.txt"
+            echo "✅ Batch job submitted successfully for $date"
+            cd ..
+        fi
+        
     elif [[ "$MODE" == "process" ]]; then
         # PROCESS MODE: Process existing data only
         echo "Step 1: Checking for existing data for $date..."
@@ -236,15 +260,12 @@ for date in "${DATES[@]}"; do
         echo "Step 2: AI enhancement processing for $date..."
         cd ai
         
-        # Submit batch job
-        echo "📤 Submitting batch job for AI processing..."
-        python submit_batch.py --data ../data/${date}.jsonl
-        
-        if [ $? -ne 0 ]; then
-            echo "❌ Batch job submission failed for $date"
+        # Check if batch job was submitted
+        if [ ! -f "../data/${date}_batch_submitted.txt" ]; then
+            echo "❌ No batch job found for $date"
+            echo "   Please run crawl mode first: ./run.sh --crawl --range $date $date"
             exit 1
         fi
-        echo "✅ Batch job submitted successfully for $date"
         
         # Process batch results (wait for completion)
         echo "⏳ Processing batch results for $date..."
@@ -299,6 +320,7 @@ if [[ "$MODE" == "crawl" ]]; then
     echo "🔄 Crawl workflow finished:"
     echo "   ✅ Data crawling"
     echo "   ✅ Smart duplicate check"
+    echo "   ✅ Batch job submission"
     echo "   ✅ File list update"
     echo ""
     echo "💡 Next step: Run processing when batch jobs are complete:"

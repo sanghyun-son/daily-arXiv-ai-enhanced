@@ -49,8 +49,32 @@ jobs:
             exit 1
         fi
         
-        echo "crawl_date=$today" >> $GITHUB_OUTPUT
         echo "Crawling completed"
+        
+        # Perform intelligent deduplication check
+        echo "Performing intelligent deduplication check..."
+        python daily_arxiv/daily_arxiv/check_stats.py --date ${today}
+        dedup_exit_code=$?
+        
+        case $dedup_exit_code in
+            0)
+                echo "Deduplication check passed, continuing with batch submission"
+                ;;
+            1)
+                echo "No new content found, stopping workflow"
+                exit 1
+                ;;
+            2)
+                echo "Error in deduplication, stopping workflow"
+                exit 2
+                ;;
+            *)
+                echo "Unknown exit code, stopping workflow"
+                exit 1
+                ;;
+        esac
+        
+        echo "crawl_date=$today" >> $GITHUB_OUTPUT
         
     - name: Submit batch job for AI processing
       run: |
