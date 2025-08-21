@@ -12,3 +12,6 @@ ai/.env
 test/*
 .idea/
 .cursorrules
+
+# Development
+.vscode/
