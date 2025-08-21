@@ -44,6 +44,7 @@ jobs:
         
     - name: AI Enhancement Processing (Batch - No Wait)
       if: steps.batch_check.outputs.process_date != ''
+      id: ai_processing
       run: |
         source .venv/bin/activate
         process_date=${{ steps.batch_check.outputs.process_date }}
@@ -62,12 +63,23 @@ jobs:
         # Check if batch processing was successful
         if [ $? -ne 0 ]; then
             echo "Batch job not ready yet or failed - will retry in next scheduled run (12 hours)"
+            echo "processing_complete=false" >> $GITHUB_OUTPUT
             exit 0  # Exit gracefully, do not fail the workflow
         fi
-        echo "AI enhancement batch processing completed"
+        
+        # Check if AI enhanced file was actually created
+        AI_FILE="../data/${process_date}_AI_enhanced_${LANGUAGE}.jsonl"
+        if [ -f "$AI_FILE" ]; then
+            echo "AI enhancement batch processing completed successfully"
+            echo "processing_complete=true" >> $GITHUB_OUTPUT
+        else
+            echo "AI enhanced file not found - batch processing may not be complete"
+            echo "processing_complete=false" >> $GITHUB_OUTPUT
+            exit 0  # Exit gracefully, do not fail the workflow
+        fi
         
     - name: Convert to Markdown
-      if: steps.batch_check.outputs.process_date != ''
+      if: steps.batch_check.outputs.process_date != '' && steps.ai_processing.outputs.processing_complete == 'true'
       run: |
         source .venv/bin/activate
         process_date=${{ steps.batch_check.outputs.process_date }}
@@ -98,14 +110,14 @@ jobs:
         echo "Markdown conversion completed"
         
     - name: Update file list
-      if: steps.batch_check.outputs.process_date != ''
+      if: steps.batch_check.outputs.process_date != '' && steps.ai_processing.outputs.processing_complete == 'true'
       run: |
         echo "Updating file list..."
         ls data/*.jsonl | sed 's|data/||' > assets/file-list.txt
         echo "File list updated"
         
     - name: Commit processed results
-      if: steps.batch_check.outputs.process_date != ''
+      if: steps.batch_check.outputs.process_date != '' && steps.ai_processing.outputs.processing_complete == 'true'
       run: |
         git config --global user.email "${{ vars.EMAIL }}"
         git config --global user.name "${{ vars.NAME }}"
@@ -120,7 +132,7 @@ jobs:
         echo "Processed results committed and pushed to main"
         
     - name: Update gh-pages branch
-      if: steps.batch_check.outputs.process_date != ''
+      if: steps.batch_check.outputs.process_date != '' && steps.ai_processing.outputs.processing_complete == 'true'
       run: |
         git config --global user.email "${{ vars.EMAIL }}"
         git config --global user.name "${{ vars.NAME }}"
@@ -130,7 +142,7 @@ jobs:
         echo "gh-pages branch updated for deployment"
         
     - name: Cleanup batch markers
-      if: steps.batch_check.outputs.process_date != ''
+      if: steps.batch_check.outputs.process_date != '' && steps.ai_processing.outputs.processing_complete == 'true'
       run: |
         process_date=${{ steps.batch_check.outputs.process_date }}
         # Remove batch submission marker after successful processing
