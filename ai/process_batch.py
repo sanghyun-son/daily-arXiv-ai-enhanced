@@ -227,7 +227,7 @@ def process_batch_results(
         batch_info = json.load(f)
 
     batch_job_id = batch_info["batch_job_id"]
-    language = batch_info.get("language", "Chinese")
+    language = batch_info.get("language", "Korean")
 
     print(f"Checking batch job: {batch_job_id}", file=sys.stderr)
 
@@ -387,6 +387,37 @@ def process_batch_results(
         file=sys.stderr,
     )
 
+    # Sort papers by relevance (Must > High > Medium > Low/Irrelevant/Error)
+    relevance_order = {
+        "Must": 3,
+        "High": 2,
+        "Medium": 1,
+        "Low": 0,
+        "Irrelevant": 0,
+        "Error": 0,
+    }
+
+    def get_relevance_score(item):
+        """Get relevance score for sorting"""
+        try:
+            if "AI" in item and "relevance" in item["AI"]:
+                relevance = item["AI"]["relevance"]
+                # Handle special cases: Error, Irrelevant, Low, and any unknown values get priority 0
+                if relevance in ["Error", "Irrelevant", "Low"]:
+                    return 0
+                return relevance_order.get(relevance, 0)
+            return 0
+        except:
+            return 0
+
+    # Sort filtered data by relevance (highest first)
+    filtered_data.sort(key=get_relevance_score, reverse=True)
+
+    print(
+        f"\nSorted papers by relevance (Must > High > Medium > Low/Irrelevant/Error)",
+        file=sys.stderr,
+    )
+
     # Save filtered results
     target_file = data_file.replace(".jsonl", f"_AI_enhanced_{language}.jsonl")
     if os.path.exists(target_file):
@@ -404,12 +435,23 @@ def process_batch_results(
         os.remove(results_file)
         print(f"Cleaned up results file: {results_file}", file=sys.stderr)
 
-    if os.path.exists(batch_info.get("batch_requests_file", "")):
-        os.remove(batch_info["batch_requests_file"])
-        print(
-            f'Cleaned up requests file: {batch_info["batch_requests_file"]}',
-            file=sys.stderr,
-        )
+    # Clean up batch-related temporary files
+    batch_files_to_cleanup = [
+        batch_info.get("batch_requests_file", ""),
+        batch_info_file,
+        data_file.replace(".jsonl", "_batch_submitted.txt"),
+    ]
+
+    for file_path in batch_files_to_cleanup:
+        if file_path and os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+                print(f"Cleaned up: {file_path}", file=sys.stderr)
+            except Exception as e:
+                print(
+                    f"Warning: Could not clean up {file_path}: {e}",
+                    file=sys.stderr,
+                )
 
     return True
 

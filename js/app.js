@@ -425,8 +425,7 @@ async function fetchAvailableDates() {
     const text = await response.text();
     const files = text.trim().split('\n');
 
-    // Dynamic language detection - look for both Chinese and Korean files
-    const dateRegex = /(\d{4}-\d{2}-\d{2})_AI_enhanced_(Chinese|Korean)\.jsonl/;
+    const dateRegex = /(\d{4}-\d{2}-\d{2})_AI_enhanced_(English|Korean)\.jsonl/;
     const dates = [];
     files.forEach(file => {
       const match = file.match(dateRegex);
@@ -603,24 +602,14 @@ function parseJsonlData(jsonlText, date) {
 // Detect language for a specific date by checking available files
 async function detectLanguageForDate(date) {
   try {
-    // Try Chinese first (default)
-    const chineseResponse = await fetch(`data/${date}_AI_enhanced_Chinese.jsonl`);
-    if (chineseResponse.ok) {
-      return 'Chinese';
-    }
-    
-    // Try Korean if Chinese doesn't exist
     const koreanResponse = await fetch(`data/${date}_AI_enhanced_Korean.jsonl`);
     if (koreanResponse.ok) {
       return 'Korean';
     }
-    
-    // Default to Chinese if neither exists
-    return 'Chinese';
   } catch (error) {
     console.error(`Error detecting language for date ${date}:`, error);
-    return 'Chinese'; // Default fallback
   }
+  return 'English'; // Default fallback
 }
 
 // 获取所有类别并按偏好排序
@@ -808,6 +797,47 @@ function renderPapers() {
   // 存储当前过滤后的论文列表，用于箭头键导航
   currentFilteredPapers = [...filteredPapers];
   
+  // Sort papers by relevance (Must > High > Medium) if AI data is available
+  const relevanceOrder = {"Must": 3, "High": 2, "Medium": 1, "Low": 0, "Irrelevant": 0, "Error": 0};
+  
+  function getRelevanceScore(paper) {
+    try {
+      if (paper.AI && paper.AI.relevance) {
+        const relevance = paper.AI.relevance;
+        // Handle special cases: Error, Irrelevant, Low, and any unknown values get priority 0
+        if (relevance === "Error" || relevance === "Irrelevant" || relevance === "Low") {
+          return 0;
+        }
+        return relevanceOrder[relevance] || 0;
+      }
+      return 0;
+    } catch {
+      return 0;
+    }
+  }
+  
+  // Sort by relevance (highest first), then by existing keyword/author matching
+  filteredPapers.sort((a, b) => {
+    const aRelevance = getRelevanceScore(a);
+    const bRelevance = getRelevanceScore(b);
+    
+    // First sort by relevance
+    if (aRelevance !== bRelevance) {
+      return bRelevance - aRelevance;
+    }
+    
+    // If relevance is the same, maintain existing keyword/author matching order
+    const aMatches = a.isMatched || false;
+    const bMatches = b.isMatched || false;
+    
+    if (aMatches && !bMatches) return -1;
+    if (!aMatches && bMatches) return 1;
+    return 0;
+  });
+  
+  // Update currentFilteredPapers with sorted order
+  currentFilteredPapers = [...filteredPapers];
+  
   if (filteredPapers.length === 0) {
     container.innerHTML = `
       <div class="loading-container">
@@ -850,6 +880,7 @@ function renderPapers() {
     paperCard.innerHTML = `
       <div class="paper-card-index">${index + 1}</div>
       ${paper.isMatched ? '<div class="match-badge" title="匹配您的搜索条件"></div>' : ''}
+      ${paper.AI && paper.AI.relevance ? `<div class="relevance-badge relevance-${paper.AI.relevance.toLowerCase()}" title="相关性: ${paper.AI.relevance}">${paper.AI.relevance}</div>` : ''}
       <div class="paper-card-header">
         <h3 class="paper-card-title">${highlightedTitle}</h3>
         <p class="paper-card-authors">${highlightedAuthors}</p>

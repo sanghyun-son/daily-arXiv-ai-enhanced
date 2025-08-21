@@ -16,7 +16,7 @@ if [ -z "$OPENAI_API_KEY" ]; then
     echo ""
     echo "🔧 Optional variables:"
     echo "   export OPENAI_BASE_URL=\"https://api.openai.com/v1\"  # API base URL"
-    echo "   export LANGUAGE=\"Chinese\"                           # Language setting"
+    echo "   export LANGUAGE=\"Korean\"                           # Language setting"
     echo "   export CATEGORIES=\"cs.CV, cs.CL\"                    # Categories of interest"
     echo "   export MODEL_NAME=\"gpt-4o-mini\"                     # Model name"
     echo "   export INTERESTS=\"machine learning, deep learning\"   # Research interests for relevance filtering"
@@ -35,7 +35,7 @@ else
     PARTIAL_MODE=false
     
     # Set default values
-    export LANGUAGE="${LANGUAGE:-Chinese}"
+    export LANGUAGE="${LANGUAGE:-Korean}"
     export CATEGORIES="${CATEGORIES:-cs.CV, cs.CL}"
     export MODEL_NAME="${MODEL_NAME:-gpt-4o-mini}"
     export OPENAI_BASE_URL="${OPENAI_BASE_URL:-https://api.openai.com/v1}"

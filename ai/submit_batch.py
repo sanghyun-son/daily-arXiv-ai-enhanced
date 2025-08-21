@@ -176,7 +176,7 @@ def submit_batch_job(
 
 def main():
     args = parse_args()
-    language = os.environ.get("LANGUAGE", "Chinese")
+    language = os.environ.get("LANGUAGE", "Korean")
     interest = os.environ.get("INTERESTS", "")
 
     # Read data

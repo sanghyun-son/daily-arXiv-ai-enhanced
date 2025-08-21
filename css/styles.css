@@ -1879,6 +1879,63 @@ footer {
   cursor: help;
 }
 
+/* 相关性标记样式 */
+.relevance-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  z-index: 5;
+  cursor: help;
+}
+
+.relevance-must {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+}
+
+.relevance-high {
+  background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
+}
+
+.relevance-medium {
+  background: linear-gradient(135deg, #ca8a04 0%, #a16207 100%);
+}
+
+.relevance-low {
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+}
+
+.relevance-irrelevant {
+  background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%);
+}
+
+.relevance-error {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+.list-view .relevance-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  transform: none;
+}
+
+@media (max-width: 768px) {
+  .relevance-badge {
+    font-size: 10px;
+    padding: 3px 6px;
+    top: 6px;
+    right: 6px;
+  }
+}
+
 @keyframes starShine {
   0% { 
     transform: scale(1) rotate(0deg); 

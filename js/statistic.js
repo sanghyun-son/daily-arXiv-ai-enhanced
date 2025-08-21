@@ -207,11 +207,10 @@ async function detectLanguageForDate(date) {
     if (koreanResponse.ok) {
       return 'Korean';
     }
-    return 'English';
   } catch (error) {
     console.error(`Error detecting language for date ${date}:`, error);
-    return 'Chinese'; // Default fallback
   }
+  return 'English'; // Default fallback
 }
 
 function toggleRangeMode() {
