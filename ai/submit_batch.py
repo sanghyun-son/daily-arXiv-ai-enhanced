@@ -41,7 +41,7 @@ def create_batch_requests(
             "method": "POST",
             "url": "/v1/chat/completions",
             "body": {
-                "model": os.environ.get("MODEL_NAME", "gpt-4o-mini"),
+                "model": os.environ.get("MODEL_NAME", "gpt-5-mini"),
                 "messages": [
                     {
                         "role": "system",

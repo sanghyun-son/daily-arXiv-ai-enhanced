@@ -42,7 +42,7 @@ class TestBatchProcessingIntegration:
                     "method": "POST",
                     "url": "/v1/chat/completions",
                     "body": {
-                        "model": "gpt-4o-mini",
+                        "model": "gpt-5-mini",
                         "messages": [
                             {
                                 "role": "system",
